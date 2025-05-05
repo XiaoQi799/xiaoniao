@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小鸟飞飞飞</title>
+    <style>
+        #game {
+            width: 400px;
+            height: 500px;
+            border: 2px solid black;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #B0E2FF, #4682B4); /* 更柔和的蓝色渐变 */
+            margin: 0 auto; /* 居中显示 */
+            max-width: 100%; /* 确保不超过屏幕宽度 */
+            touch-action: manipulation; /* 优化触摸操作 */
+        }
+        #bird {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            left: 50px;
+            background: radial-gradient(circle at 50% 100%, var(--bird-light) 25%, var(--bird-dark) 25%);
+            color: var(--bird-dark);
+            border-radius: 50%;
+            overflow: visible;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            border: 2px solid #333;
+        }
+
+        /* 翅膀样式 - 调整大小和位置 */
+        #bird::before {
+            content: '';
+            position: absolute;
+            width: 19px;  /* 从15px增加到20px */
+            height: 12px;  /* 从12px增加到16px */
+            background: currentColor;
+            border-radius: 50% 50% 0 50%;
+            top: 20px;    /* 稍微上移一点 */
+            left: -8px;  /* 向左移动更多，让翅膀更突出 */
+            transform: rotate(-20deg);
+            border: 2px solid #333;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        
+        /* 嘴巴样式 */
+        #bird::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 6px;
+            background: #FF6B00;
+            border-radius: 4px;
+            top: 22px;
+            right: -6px;
+            transform: rotate(10deg);
+            border: 1px solid #333;
+        }
+
+        /* 添加眼睛样式 */
+        .bird-eye {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: black;
+            border-radius: 50%;
+            top: 12px;
+            right: 8px;
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+        }
+
+        /* 修改管道的颜色，使其更柔和 */
+        .pipe {
+            width: 60px;
+            position: absolute;
+            background: linear-gradient(90deg, #2E8B57, #3CB371, #2E8B57);
+            border-radius: 5px;
+            border: 2px solid #1a5c34;
+            box-shadow: inset 2px 0 5px rgba(255,255,255,0.3),
+                        inset -2px 0 5px rgba(0,0,0,0.3);
+        }
+        
+        /* 修改管道装饰的颜色 */
+        .pipe::before {
+            content: '';
+            position: absolute;
+            width: 70px;
+            height: 20px;
+            background: linear-gradient(90deg, #1a5c34, #3CB371, #1a5c34);
+            left: -5px;
+            border-radius: 5px;
+        }
+        
+        /* 为底部管道添加顶部装饰 */
+        .pipe.bottom::before {
+            top: 0;
+            transform: translateY(-10px);
+        }
+        
+        /* 为顶部管道添加底部装饰 */
+        .pipe.top::before {
+            bottom: 0;
+            transform: translateY(10px);
+        }
+        
+        /* 添加颜色选择器样式 */
+        #colorPicker {
+            margin: 10px 0;
+        }
+        
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            margin: 0 5px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-block;
+        }
+        
+        .color-btn.active {
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <div style="position: absolute; top: 10px; left: 32px; right: 10px; display: flex; justify-content: flex-start; gap: 50px; color: white; font-size: 18px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); z-index: 100;">
+            <div>分数: <span id="score">0</span></div>
+            <div style="margin-left: 2ch;">时长: <span id="playTime">0</span>秒</div>
+        </div>
+        <button id="settingsBtn" style="position: absolute; top: 10px; right: 10px; z-index: 100; font-size: 20px; background: rgba(255, 255, 255, 0.7); border: none; border-radius: 5px; cursor: pointer; width: 40px; height: 40px;">⚙️</button>
+        <div id="bird">
+            <div class="bird-eye"></div>
+        </div>
+        <button id="startBtn" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            padding: 15px 40px; 
+            font-size: 24px; 
+            z-index: 100; 
+            cursor: pointer; 
+            background: linear-gradient(to bottom, #ff4d4d, #cc0000); 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">开始</button>
+        <button id="pauseBtn" style="position: absolute; bottom: 10px; right: 10px; padding: 5px 10px; z-index: 100; font-size: 20px; background: rgba(255, 255, 255, 0.7); border: none; border-radius: 5px; cursor: pointer; width: 40px; height: 40px;">⏸</button>
+    </div>
+    
+    <!-- 设置面板 -->
+    <div id="settingsModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+        background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        z-index: 1000;
+        min-width: 300px;">
+        <h2 style="text-align: center; color: #333; margin-bottom: 20px; font-size: 24px;">游戏设置</h2>
+        <div id="colorPicker" style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="font-weight: bold; margin-bottom: 10px; color: #444;">小鸟颜色：</div>
+            <div style="display: flex; justify-content: center; gap: 15px;">
+                <div class="color-btn active" style="background: yellow; transition: transform 0.2s;" data-color="yellow"></div>
+                <div class="color-btn" style="background: #ADD8E6; transition: transform 0.2s;" data-color="#ADD8E6"></div>
+                <div class="color-btn" style="background: #D3D3D3; transition: transform 0.2s;" data-color="#D3D3D3"></div>
+                <div class="color-btn" style="background: #FAF0E6; transition: transform 0.2s;" data-color="#FAF0E6"></div>
+                <div class="color-btn" style="background: #98FB98; transition: transform 0.2s;" data-color="#98FB98"></div>
+            </div>
+        </div>
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="showRanking()" style="
+                background: linear-gradient(to bottom, #4CAF50, #45a049);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+                transition: all 0.3s;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                查看排行榜
+            </button>
+        </div>
+        <button onclick="closeSettings()" style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+            transition: color 0.3s;">✕</button>
+    </div>
+    
+    <!-- <div style="text-align: center;">
+        <div style="margin: 10px 0;">
+            <button onclick="showRanking()">查看排行榜</button>
+        </div>
+        <div id="colorPicker">
+            小鸟颜色：
+            <div class="color-btn active" style="background: yellow" data-color="yellow"></div>
+            <div class="color-btn" style="background: #ADD8E6" data-color="#ADD8E6"></div>
+        <div class="color-btn" style="background: #D3D3D3" data-color="#D3D3D3"></div>
+        <div class="color-btn" style="background: #FAF0E6" data-color="#FAF0E6"></div>
+            <div class="color-btn" style="background: #98FB98" data-color="#98FB98"></div>
+        </div>
+        
+    </div> -->
+    <!-- 排行榜弹窗 -->
+    <div id="rankingModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+        background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        z-index: 1000;
+        min-width: 300px;
+        max-height: 80vh;
+        overflow-y: auto;">
+        <h2 style="text-align: center; color: #333; margin-bottom: 20px; font-size: 24px;">排行榜</h2>
+        <div id="rankingList" style="background: rgba(255,255,255,0.8); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <!-- 排行榜内容将通过JavaScript动态插入 -->
+        </div>
+        <div style="text-align: center;">
+            <button onclick="closeRanking()" style="
+                background: linear-gradient(to bottom, #4CAF50, #45a049);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 16px;
+                transition: all 0.3s;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                关闭
+            </button>
+        </div>
+    </div>
+    <script>
+        // 游戏变量初始化
+        let bird = document.getElementById('bird');
+        let game = document.getElementById('game');
+        let score = document.getElementById('score');
+        let birdY = 300;
+        let velocity = 0;
+        let gravity = 0.5;
+        let isGameOver = true;
+        let scoreValue = 0;
+        let pipes = [];
+        let lastPipeTime = 0;
+        let gameSpeed = 2; // 固定游戏速度
+        let pipeGap = 200; // 固定管道间隙
+        // 移除level变量
+        let gameStartTime = null;
+        let gamePlayTime = 0;
+        let playTimeElement = document.getElementById('playTime');
+
+        // 更新游戏时长显示
+        function updatePlayTime() {
+            if (!isGameOver && gameStartTime) {
+                gamePlayTime = Math.floor((Date.now() - gameStartTime) / 1000);
+                playTimeElement.textContent = gamePlayTime;
+            }
+        }
+
+        // 游戏主循环
+        // 在游戏变量初始化部分添加
+        let isPaused = false;
+        let pauseStartTime = 0;
+        
+        // 修改暂停按钮事件监听
+        document.getElementById('pauseBtn').addEventListener('click', function() {
+            if (!isGameOver) {  // 只有在游戏进行中才能暂停
+                isPaused = !isPaused;
+                this.textContent = isPaused ? '▶' : '⏸';
+                if (isPaused) {
+                    pauseStartTime = Date.now();
+                } else {
+                    // 继续游戏时，调整上一次管道生成的时间
+                    let pauseDuration = Date.now() - pauseStartTime;
+                    lastPipeTime += pauseDuration;
+                    gameStartTime += pauseDuration; // 调整游戏开始时间，以保持时间计算准确
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+        });
+
+        // 修改游戏主循环函数
+        function gameLoop() {
+            if (isGameOver || isPaused) {
+                return; // 如果游戏结束或暂停，直接返回
+            }
+
+            // 更新游戏时长
+            updatePlayTime();
+
+            // 小鸟运动
+            velocity += gravity;
+            birdY += velocity;
+            bird.style.top = birdY + 'px';
+
+            // 生成管道
+            let currentTime = Date.now();
+            if (currentTime - lastPipeTime > 2000) {
+                createPipe();
+                lastPipeTime = currentTime;
+            }
+
+            // 移动管道
+            movePipes();
+
+            // 更新难度
+            updateDifficulty();
+
+            // 碰撞检测
+            checkCollision();
+
+            // 检查小鸟是否飞出界面
+            if (birdY < 0 || birdY > game.offsetHeight) {
+                gameOver();
+            }
+
+            // 确保在循环结束时再次请求动画帧
+            if (!isPaused && !isGameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // 创建管道
+        function createPipe() {
+            let gap = pipeGap;
+            let pipeHeight = Math.random() * 250 + 50;
+            
+            let bottomPipe = document.createElement('div');
+            bottomPipe.className = 'pipe bottom';
+            bottomPipe.style.height = pipeHeight + 'px';
+            bottomPipe.style.bottom = '0';
+            bottomPipe.style.left = '400px';
+            
+            let topPipe = document.createElement('div');
+            topPipe.className = 'pipe top';
+            topPipe.style.height = (500 - pipeHeight - gap) + 'px';
+            topPipe.style.top = '0';
+            // 将右侧管道向左移动，保持水平间距为gap
+            topPipe.style.left = (400 - gap - 60) + 'px';
+            
+            game.appendChild(bottomPipe);
+            game.appendChild(topPipe);
+            pipes.push({bottom: bottomPipe, top: topPipe, counted: false});
+        }
+
+        // 移动管道
+        function movePipes() {
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                let pipe = pipes[i];
+                let left = parseInt(pipe.bottom.style.left) - gameSpeed;
+                pipe.bottom.style.left = left + 'px';
+                pipe.top.style.left = left + 'px';
+
+                // 计分
+                if (!pipe.counted && left < 50) {
+                    scoreValue++;
+                    score.textContent = scoreValue;
+                    pipe.counted = true;
+                }
+
+                // 移除超出屏幕的管道
+                if (left < -60) {
+                    game.removeChild(pipe.bottom);
+                    game.removeChild(pipe.top);
+                    pipes.splice(i, 1);
+                }
+            }
+        }
+
+        // 碰撞检测
+        function checkCollision() {
+            let birdRect = bird.getBoundingClientRect();
+            
+            for (let pipe of pipes) {
+                let bottomRect = pipe.bottom.getBoundingClientRect();
+                let topRect = pipe.top.getBoundingClientRect();
+                
+                if (isColliding(birdRect, bottomRect) || isColliding(birdRect, topRect)) {
+                    gameOver();
+                }
+            }
+        }
+
+        // 碰撞判定
+        function isColliding(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                    rect1.left > rect2.right || 
+                    rect1.bottom < rect2.top || 
+                    rect1.top > rect2.bottom);
+        }
+
+        // 更新难度
+        function updateDifficulty() {
+            // 删除所有等级和加速相关的代码
+            return;
+        }
+
+        // 保存分数到排行榜
+        function saveScore(score, color, playTime) {
+            let rankings = JSON.parse(localStorage.getItem('rankings') || '[]');
+            rankings.push({
+                score: score,
+                color: color,
+                time: new Date().toLocaleString(),
+                playTime: playTime // 添加游戏时长
+            });
+            
+            // 按分数排序
+            rankings.sort((a, b) => b.score - a.score);
+            
+            // 只保留前10名
+            rankings = rankings.slice(0, 10);
+            
+            localStorage.setItem('rankings', JSON.stringify(rankings));
+        }
+
+        // 显示排行榜
+        function showRanking() {
+            let rankings = JSON.parse(localStorage.getItem('rankings') || '[]');
+            let rankingHtml = '<table style="width: 100%; border-collapse: collapse;">';
+            rankingHtml += '<tr><th>排名</th><th>分数</th><th>颜色</th><th>游戏时长</th><th>时间</th></tr>';
+            
+            rankings.forEach((record, index) => {
+                rankingHtml += `
+                    <tr style="text-align: center;">
+                        <td>${index + 1}</td>
+                        <td>${record.score}</td>
+                        <td><span style="display: inline-block; width: 20px; height: 20px; background: ${record.color}; border-radius: 50%;"></span></td>
+                        <td>${record.playTime || '未记录'}秒</td>
+                        <td>${record.time}</td>
+                    </tr>
+                `;
+            });
+            
+            rankingHtml += '</table>';
+            document.getElementById('rankingList').innerHTML = rankingHtml;
+            document.getElementById('rankingModal').style.display = 'block';
+        }
+
+        // 关闭排行榜
+        function closeRanking() {
+            document.getElementById('rankingModal').style.display = 'none';
+        }
+
+        // 修改游戏结束函数
+        function gameOver() {
+            isGameOver = true;
+            alert('游戏结束！\n最终得分：' + scoreValue + '\n游戏时长：' + gamePlayTime + '秒');
+            saveScore(scoreValue, currentColor, gamePlayTime); // 移除等级参数
+        }
+
+        // 开始游戏函数（保留带时间记录的版本）
+        function startGame() {
+            // 重置游戏状态
+            isGameOver = false;
+            birdY = 300;
+            velocity = 0;
+            scoreValue = 0;
+            level = 1;
+            gameSpeed = 2;
+            pipeGap = 200;
+            score.textContent = '0';
+            gameStartTime = Date.now(); // 记录游戏开始时间
+            gamePlayTime = 0; // 重置游戏时长
+            playTimeElement.textContent = '0'; // 重置时间显示
+            
+            // 清除所有管道
+            pipes.forEach(pipe => {
+                if (pipe.bottom && pipe.bottom.parentNode) {
+                    game.removeChild(pipe.bottom);
+                }
+                if (pipe.top && pipe.top.parentNode) {
+                    game.removeChild(pipe.top);
+                }
+            });
+            pipes = [];
+            
+            // 重置小鸟位置
+            bird.style.top = birdY + 'px';
+            
+            // 开始游戏循环
+            gameLoop();
+        }
+
+        // 点击/按空格跳跃
+        document.addEventListener('click', function() {
+            if (!isGameOver) {
+                velocity = -8;
+            }
+        });
+
+        // 添加键盘事件监听
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && !isGameOver) {
+                e.preventDefault();
+                velocity = -8;
+            }
+            // 添加开始游戏快捷键A
+            if (e.key.toLowerCase() === 'a' && isGameOver) {
+                e.preventDefault();
+                startGame();
+            }
+            // 暂停快捷键B
+            if (e.key.toLowerCase() === 'b' && !isGameOver) {
+                e.preventDefault();
+                isPaused = !isPaused;
+                document.getElementById('pauseBtn').textContent = isPaused ? '▶' : '⏸';
+                if(!isPaused) {
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+        });
+
+        // 添加颜色选择功能
+        let colorButtons = document.querySelectorAll('.color-btn');
+        // 在游戏变量初始化部分添加
+        let currentColor = 'yellow';
+        bird.style.setProperty('--bird-dark', currentColor);
+        bird.style.setProperty('--bird-light', lightenColor(currentColor, 30));
+        bird.style.color = currentColor;
+        
+        colorButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                if (isGameOver) {  // 只有在游戏未开始时才能更换颜色
+                    // 移除其他按钮的active类
+                    colorButtons.forEach(btn => btn.classList.remove('active'));
+                    // 添加当前按钮的active类
+                    this.classList.add('active');
+                    // 更新小鸟颜色
+                    currentColor = this.dataset.color;
+                    bird.style.setProperty('--bird-dark', currentColor);
+                    bird.style.setProperty('--bird-light', lightenColor(currentColor, 30));
+                    bird.style.color = currentColor;
+                }
+            });
+        });
+
+        // 添加颜色变亮函数
+        function lightenColor(color, percent) {
+            // 简单实现 - 将黄色变亮30%
+            if(color === 'yellow') return '#FFFFA0';
+            if(color === '#ADD8E6') return '#E6F7FF';
+            if(color === '#D3D3D3') return '#F0F0F0';
+            if(color === '#FAF0E6') return '#FFF8F0';
+            if(color === '#98FB98') return '#C8FAC8';
+            return '#FFFFFF'; // 默认返回白色
+        }
+
+        // 修改开始游戏函数
+        function startGame() {
+            // 重置游戏状态
+            isGameOver = false;
+            birdY = 250;  // 从200改为250，让小鸟在新高度的中间位置
+            velocity = 0;
+            scoreValue = 0;
+            level = 1;
+            gameSpeed = 2;
+            pipeGap = 200;
+            score.textContent = '0';
+            gameStartTime = Date.now(); // 记录游戏开始时间
+            document.getElementById('playTime').textContent = '0'; // 重置时间显示
+            
+            // 清除所有管道
+            pipes.forEach(pipe => {
+                if (pipe.bottom && pipe.bottom.parentNode) {
+                    game.removeChild(pipe.bottom);
+                }
+                if (pipe.top && pipe.top.parentNode) {
+                    game.removeChild(pipe.top);
+                }
+            });
+            pipes = [];
+            
+            // 重置小鸟位置
+            bird.style.top = birdY + 'px';
+            
+            // 开始游戏循环
+            gameLoop();
+        }
+
+        // 点击/按空格跳跃
+        document.addEventListener('click', function() {
+            if (!isGameOver) {
+                velocity = -8;
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && !isGameOver) {
+                e.preventDefault();
+                velocity = -8;
+            }
+        });
+
+        // 添加开始按钮事件监听
+        document.getElementById('startBtn').addEventListener('click', function() {
+            if (isGameOver) {
+                this.style.display = 'none'; // 点击后隐藏开始按钮
+                startGame();
+            }
+        });
+        
+        // 修改游戏结束函数，显示开始按钮
+        function gameOver() {
+            isGameOver = true;
+            document.getElementById('startBtn').style.display = 'block'; // 游戏结束时显示开始按钮
+            alert('游戏结束！\n最终得分：' + scoreValue + '\n游戏时长：' + gamePlayTime + '秒');
+            saveScore(scoreValue, currentColor, gamePlayTime);
+        }
+        
+        // 修改开始游戏函数
+        function startGame() {
+            document.getElementById('startBtn').style.display = 'none'; // 确保开始按钮隐藏
+            // 重置游戏状态
+            isGameOver = false;
+            birdY = 250;  // 从200改为250，让小鸟在新高度的中间位置
+            velocity = 0;
+            scoreValue = 0;
+            level = 1;
+            gameSpeed = 2;
+            pipeGap = 200;
+            score.textContent = '0';
+            gameStartTime = Date.now(); // 记录游戏开始时间
+            document.getElementById('playTime').textContent = '0'; // 重置时间显示
+            
+            // 清除所有管道
+            pipes.forEach(pipe => {
+                if (pipe.bottom && pipe.bottom.parentNode) {
+                    game.removeChild(pipe.bottom);
+                }
+                if (pipe.top && pipe.top.parentNode) {
+                    game.removeChild(pipe.top);
+                }
+            });
+            pipes = [];
+            
+            // 重置小鸟位置
+            bird.style.top = birdY + 'px';
+            
+            // 开始游戏循环
+            gameLoop();
+        }
+
+        // 点击/按空格跳跃
+        document.addEventListener('click', function() {
+            if (!isGameOver) {
+                velocity = -8;
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && !isGameOver) {
+                e.preventDefault();
+                velocity = -8;
+            }
+        });
+    // 添加设置按钮事件监听
+    document.getElementById('settingsBtn').addEventListener('click', function() {
+    document.getElementById('settingsModal').style.display = 'block';
+    });
+    
+    // 关闭设置面板
+    function closeSettings() {
+    document.getElementById('settingsModal').style.display = 'none';
+    }
+    
+    </script>
+</body>
+</html>
